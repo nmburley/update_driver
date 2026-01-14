@@ -1,0 +1,77 @@
+  - name: Install Chocolatey tools (7zip, zip) and Strawberry Perl
+    run: |
+      choco install -y 7zip strawberryperl
+      refreshenv
+
+  - name: Show config.json (debug)
+    run: type config.json
+
+  - name: Parse config.json and download MSI
+    shell: powershell
+    run: |
+      $cfg = Get-Content config.json | ConvertFrom-Json
+      $msiUrl = $cfg.windows.windows_msi_url
+      if (-not $msiUrl) { throw "windows_msi_url not found in config.json" }
+      $downloadPath = Join-Path $env:RUNNER_TEMP "psqlodbc_x64.msi"
+      Write-Host "Downloading $msiUrl to $downloadPath"
+      Invoke-WebRequest -Uri $msiUrl -OutFile $downloadPath
+      Write-Host "Downloaded MSI to $downloadPath"
+      Set-Content -Path msi_path.txt -Value $downloadPath
+
+  - name: Extract MSI with 7z
+    shell: powershell
+    run: |
+      $msi = Get-Content msi_path.txt
+      $temp = Join-Path $env:RUNNER_TEMP "msi_extract"
+      Remove-Item -Recurse -Force $temp -ErrorAction SilentlyContinue
+      New-Item -ItemType Directory -Path $temp | Out-Null
+      & 7z x $msi -o$temp | Out-Null
+      Write-Host "Extracted MSI to $temp"
+      Set-Content -Path extract_dir.txt -Value $temp
+
+  - name: Collect extracted bin and docs, create package dir
+    shell: powershell
+    run: |
+      $extract = Get-Content extract_dir.txt
+      $out = Join-Path $env:RUNNER_WORKSPACE "windows-driver-output"
+      Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
+      New-Item -ItemType Directory -Path $out | Out-Null
+      $binDir = Join-Path $extract "bin"
+      if (Test-Path $binDir) {
+        Copy-Item -Path (Join-Path $binDir '*') -Destination (Join-Path $out 'lib') -Force -Recurse
+        Write-Host "Copied bin files to $out\lib"
+      } else {
+        Write-Warning "No bin directory found in MSI extraction"
+      }
+      $docsDir = Join-Path $extract "docs"
+      if (Test-Path $docsDir) {
+        Copy-Item -Path (Join-Path $docsDir '*') -Destination (Join-Path $out 'docs') -Force -Recurse
+        Write-Host "Copied docs"
+      } else {
+        Write-Warning "No docs directory found"
+      }
+      # Copy the MSI into output for zipping
+      $msi = Get-Content msi_path.txt
+      Copy-Item -Path $msi -Destination $out -Force
+
+  - name: Create ZIP package
+    shell: powershell
+    run: |
+      $out = Join-Path $env:RUNNER_WORKSPACE "windows-driver-output"
+      $zipName = Join-Path $env:RUNNER_WORKSPACE "psqlodbc_windows_package.zip"
+      if (Test-Path $zipName) { Remove-Item $zipName -Force }
+      Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zipName -Force
+      Write-Host "Created $zipName"
+      Set-Content -Path package_path.txt -Value $zipName
+
+  - name: List output contents
+    run: |
+      powershell -Command "Get-ChildItem -Recurse -Force windows-driver-output | Select FullName,Length | Format-Table -AutoSize"
+
+  - name: Upload artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: windows-driver-package
+      path: |
+        windows-driver-output
+        psqlodbc_windows_package.zip
