@@ -21,7 +21,7 @@ jobs:
             # Or use a custom label you assigned like "local-win"
             runs-on: [self-hosted, Windows]
           - os: ubuntu-latest
-            runs-on: ubuntu-latest
+            runs-on: [self-hosted, Linux, X64]
       fail-fast: false
 
     # Use the runs-on value from the matrix (string or array of labels)
