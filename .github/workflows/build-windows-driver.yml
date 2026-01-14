@@ -5,7 +5,6 @@ name: update drivers (windows + linux)
 
 on:
   push:
-    # run for any changes in the repo; adjust paths if you only want specific changes to trigger
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
@@ -13,12 +12,22 @@ on:
 
 jobs:
   run-update-script:
-    # Use a matrix with Windows and Linux runners. See notes below about using a RHEL/CentOS runner.
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        perl: ["5.36"]        # adjust perl version if needed
-    runs-on: ${{ matrix.os }}
+        include:
+          - os: windows-selfhost
+            # Use the labels that match your self-hosted runner.
+            # Common labels: self-hosted, Windows, X64
+            # Or use a custom label you assigned like "local-win"
+            runs-on: [self-hosted, Windows]
+            perl: "5.36"
+          - os: ubuntu-latest
+            runs-on: ubuntu-latest
+            perl: "5.36"
+      fail-fast: false
+
+    # Use the runs-on value from the matrix (string or array of labels)
+    runs-on: ${{ matrix.runs-on }}
 
     steps:
       - name: Checkout repository
@@ -34,14 +43,12 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y cpanminus build-essential pkg-config
-          # Install small set of modules used by the script (non-interactive)
           cpanm --notest JSON File::Slurp Archive::Zip || true
 
       - name: Install CPAN modules on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # On windows-latest Strawberry Perl should include cpan and cpanm; attempt to install if needed.
           try {
             cpanm --version
           } catch {
@@ -59,12 +66,9 @@ jobs:
           perl -v
 
       - name: Run updating_both_drivers.pl
-        # Use pwsh shell on Windows to better match Windows commands inside the script
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # The script reads config.json next to the script by default.
-          # If your config.json is at a different path, pass --config /path/to/config.json
           perl .\updating_both_drivers.pl
 
       - name: Run updating_both_drivers.pl (Linux)
