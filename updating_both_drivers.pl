@@ -1,13 +1,13 @@
 #!/usr/bin/env -S PERL5LIB= /usr/bin/perl
 use strict;
 use warnings;
-use File::Path qw(make_path);
 use File::Path qw(make_path remove_tree);
 use Cwd;
 use File::Basename;
 use JSON;
 use File::Slurp;
 use FindBin;
+use POSIX qw(strftime);
 use File::Spec;
 use File::Spec::Functions qw(catfile catdir);
 use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
@@ -313,7 +313,7 @@ sub prepare_linux_driver_mimalloc {
     symlink("psqlodbcw.so","libpsqlodbc.so") unless -e "libpsqlodbc.so";
 
     my @pqfiles = glob("libpq.so*");
-    my $actual = (grep {! -l $_} @pqfiles)[0] // "";
+    my $actual = (grep {! -l $_} @pqfiles)[0] || "";
     if ($actual eq "") { warn "libpq actual file not found\n"; }
     else {
         rename $actual, "libpq.so.5.17" unless $actual eq "libpq.so.5.17";
