@@ -42,10 +42,10 @@ jobs:
         run: |
           perl .\updating_both_drivers.pl
 
-      - name: Run update_both_drivers.pl (Linux)
+      - name: Run updating_both_drivers.pl (Linux)
         if: runner.os == 'Linux'
         run: |
-          perl ./update_both_drivers.pl
+          perl ./updating_both_drivers.pl
 
       - name: Upload artifacts (optional)
         if: always()
