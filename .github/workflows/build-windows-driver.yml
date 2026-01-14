@@ -1,91 +1,84 @@
-name: Build Windows ODBC Driver Package
+# GitHub Actions workflow: run updating_both_drivers.pl on Windows and Linux when code changes
+# Place this file at .github/workflows/update-drivers.yml in your repo.
+
+name: update drivers (windows + linux)
+
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    # run for any changes in the repo; adjust paths if you only want specific changes to trigger
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: {}
 
 jobs:
-  build-windows-driver:
-    runs-on: windows-latest
+  run-update-script:
+    # Use a matrix with Windows and Linux runners. See notes below about using a RHEL/CentOS runner.
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        perl: ["5.36"]        # adjust perl version if needed
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Chocolatey tools (7zip, zip) and Strawberry Perl
-        run: |
-          choco install -y 7zip strawberryperl
-          refreshenv
+      - name: Setup Perl
+        uses: actions/setup-perl@v2
+        with:
+          perl-version: ${{ matrix.perl }}
 
-      - name: Show config_17_00_0006.json (debug)
-        run: type config_17__00_0006.json
-
-      - name: Parse config_17_00_0006.json and download MSI
-        shell: powershell
+      - name: Install CPAN modules on Linux
+        if: runner.os == 'Linux'
         run: |
-          $cfg = Get-Content config_17__00_0006.json | ConvertFrom-Json
-          $msiUrl = $cfg.windows.windows_msi_url
-          if (-not $msiUrl) { throw "windows_msi_url not found in config.json" }
-          $downloadPath = Join-Path $env:RUNNER_TEMP "psqlodbc_x64.msi"
-          Write-Host "Downloading $msiUrl to $downloadPath"
-          Invoke-WebRequest -Uri $msiUrl -OutFile $downloadPath
-          Write-Host "Downloaded MSI to $downloadPath"
-          Set-Content -Path msi_path.txt -Value $downloadPath
+          sudo apt-get update -y
+          sudo apt-get install -y cpanminus build-essential pkg-config
+          # Install small set of modules used by the script (non-interactive)
+          cpanm --notest JSON File::Slurp Archive::Zip || true
 
-      - name: Extract MSI with 7z
-        shell: powershell
+      - name: Install CPAN modules on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          $msi = Get-Content msi_path.txt
-          $temp = Join-Path $env:RUNNER_TEMP "msi_extract"
-          Remove-Item -Recurse -Force $temp -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path $temp | Out-Null
-          & 7z x $msi -o$temp | Out-Null
-          Write-Host "Extracted MSI to $temp"
-          Set-Content -Path extract_dir.txt -Value $temp
-
-      - name: Collect extracted bin and docs, create package dir
-        shell: powershell
-        run: |
-          $extract = Get-Content extract_dir.txt
-          $out = Join-Path $env:RUNNER_WORKSPACE "windows-driver-output"
-          Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path $out | Out-Null
-          $binDir = Join-Path $extract "bin"
-          if (Test-Path $binDir) {
-            Copy-Item -Path (Join-Path $binDir '*') -Destination (Join-Path $out 'lib') -Force -Recurse
-            Write-Host "Copied bin files to $out\lib"
-          } else {
-            Write-Warning "No bin directory found in MSI extraction"
+          # On windows-latest Strawberry Perl should include cpan and cpanm; attempt to install if needed.
+          try {
+            cpanm --version
+          } catch {
+            perl -MCPAN -e "install App::cpanminus"
           }
-          $docsDir = Join-Path $extract "docs"
-          if (Test-Path $docsDir) {
-            Copy-Item -Path (Join-Path $docsDir '*') -Destination (Join-Path $out 'docs') -Force -Recurse
-            Write-Host "Copied docs"
-          } else {
-            Write-Warning "No docs directory found"
-          }
-          # Copy the MSI into output for zipping
-          $msi = Get-Content msi_path.txt
-          Copy-Item -Path $msi -Destination $out -Force
+          cpanm --notest JSON File::Slurp Archive::Zip || Write-Host "cpanm modules install returned non-zero; continuing"
 
-      - name: Create ZIP package
-        shell: powershell
+      - name: Make the script executable (Linux)
+        if: runner.os == 'Linux'
+        run: chmod +x ./updating_both_drivers.pl || true
+
+      - name: Print runtime info
         run: |
-          $out = Join-Path $env:RUNNER_WORKSPACE "windows-driver-output"
-          $zipName = Join-Path $env:RUNNER_WORKSPACE "psqlodbc_windows_package.zip"
-          if (Test-Path $zipName) { Remove-Item $zipName -Force }
-          Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zipName -Force
-          Write-Host "Created $zipName"
-          Set-Content -Path package_path.txt -Value $zipName
+          echo "Runner OS: $RUNNER_OS"
+          perl -v
 
-      - name: List output contents
+      - name: Run updating_both_drivers.pl
+        # Use pwsh shell on Windows to better match Windows commands inside the script
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          powershell -Command "Get-ChildItem -Recurse -Force windows-driver-output | Select FullName,Length | Format-Table -AutoSize"
+          # The script reads config.json next to the script by default.
+          # If your config.json is at a different path, pass --config /path/to/config.json
+          perl .\updating_both_drivers.pl
 
-      - name: Upload artifact
+      - name: Run updating_both_drivers.pl (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          perl ./updating_both_drivers.pl
+
+      - name: Upload artifacts (optional)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-driver-package
+          name: driver-output-${{ matrix.os }}
           path: |
-            windows-driver-output
-            psqlodbc_windows_package.zip
+            windows/**/*
+            linux/**/*
+            ./*.zip
+            ./*.log
