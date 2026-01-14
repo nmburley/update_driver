@@ -20,10 +20,8 @@ jobs:
             # Common labels: self-hosted, Windows, X64
             # Or use a custom label you assigned like "local-win"
             runs-on: [self-hosted, Windows]
-            perl: "5.36"
           - os: ubuntu-latest
             runs-on: ubuntu-latest
-            perl: "5.36"
       fail-fast: false
 
     # Use the runs-on value from the matrix (string or array of labels)
@@ -33,37 +31,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Perl
-        uses: actions/setup-perl@v2
-        with:
-          perl-version: ${{ matrix.perl }}
-
-      - name: Install CPAN modules on Linux
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y cpanminus build-essential pkg-config
-          cpanm --notest JSON File::Slurp Archive::Zip || true
-
-      - name: Install CPAN modules on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          try {
-            cpanm --version
-          } catch {
-            perl -MCPAN -e "install App::cpanminus"
-          }
-          cpanm --notest JSON File::Slurp Archive::Zip || Write-Host "cpanm modules install returned non-zero; continuing"
-
-      - name: Make the script executable (Linux)
-        if: runner.os == 'Linux'
-        run: chmod +x ./updating_both_drivers.pl || true
-
       - name: Print runtime info
         run: |
           echo "Runner OS: $RUNNER_OS"
-          perl -v
+          perl -v || echo "perl not found; expected to be available on runner"
 
       - name: Run updating_both_drivers.pl
         if: runner.os == 'Windows'
