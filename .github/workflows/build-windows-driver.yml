@@ -36,16 +36,16 @@ jobs:
           echo "Runner OS: $RUNNER_OS"
           perl -v || echo "perl not found; expected to be available on runner"
 
-      - name: Run updating_windows_drivers.pl
+      - name: Run updating_windows_driver.pl
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          perl .\updating_windows_drivers.pl
+          perl .\updating_windows_driver.pl
 
-      - name: Run updating_linux_drivers.pl (Linux)
+      - name: Run update_linux_driver.pl (Linux)
         if: runner.os == 'Linux'
         run: |
-          perl ./updating_linux_drivers.pl
+          perl ./update_linux_driver.pl
 
       - name: Upload artifacts (optional)
         if: always()
