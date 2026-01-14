@@ -17,13 +17,13 @@ jobs:
           choco install -y 7zip strawberryperl
           refreshenv
 
-      - name: Show config.json (debug)
-        run: type config.json
+      - name: Show config_17_00_0006.json (debug)
+        run: type config_17__00_0006.json
 
-      - name: Parse config.json and download MSI
+      - name: Parse config_17_00_0006.json and download MSI
         shell: powershell
         run: |
-          $cfg = Get-Content config.json | ConvertFrom-Json
+          $cfg = Get-Content config_17__00_0006.json | ConvertFrom-Json
           $msiUrl = $cfg.windows.windows_msi_url
           if (-not $msiUrl) { throw "windows_msi_url not found in config.json" }
           $downloadPath = Join-Path $env:RUNNER_TEMP "psqlodbc_x64.msi"
