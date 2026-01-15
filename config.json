@@ -5,17 +5,17 @@
 
   "linux": {
     "build_root": "/tc_work/nmb/postgres_build",
-    "build_version_dir": "/tc_work/nmb/TOOLBOX/lnx64/psqlODBC/17.00.0006-mimalloc",
+    "build_version_dir": "/tc_work/nmb/TOOLBOX/lnx64/psqlODBC/{base_version}.{secondary_version}.{third_version}",
     "src_base_dir": "/tc_ref/TOOLBOX/lnx64/psqlODBC",
-    "driver_url": "https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-8-x86_64/postgresql17-odbc-17.00.0006-1PGDG.rhel8.x86_64.rpm",
-    "driver_rpm": "postgresql17-odbc-17.00.0006-1PGDG.rhel8.x86_64.rpm",
-	"mimalloc_tarball": "/tc_ref/TOOLBOX/lnx64/psqlODBC/REL-17_00_0006-mimalloc.tar.gz",
-	"psql_ver": "REL-17_00_0006-mimalloc",
-	"mim_tag": "v2.2.4"
+    "driver_url": "https://download.postgresql.org/pub/repos/yum/{base_version}/redhat/rhel-8-x86_64/postgresql{base_version}-odbc-{base_version}.{secondary_version}.{third_version}-1PGDG.rhel8.x86_64.rpm",
+    "driver_rpm": "postgresql{base_version}-odbc-{base_version}.{secondary_version}.{third_version}-1PGDG.rhel8.x86_64.rpm",
+    "mimalloc_tarball": "/tc_ref/TOOLBOX/lnx64/psqlODBC/REL-{base_version}_{secondary_version}_{third_version}.tar.gz",
+    "psql_ver": "REL-{base_version}_{secondary_version}_{third_version}",
+    "mim_tag": "v2.2.4"
   },
 
   "windows": {
-    "windows_dir": "Q:\\TOOLBOX\\wntx64\\psqlODBC\\17.00.0006-mimalloc",
-    "windows_msi_url": "https://ftp.postgresql.org/pub/odbc/releases/REL-17_00_0006-mimalloc/psqlodbc_x64.msi"
+    "windows_dir": "Q:\\TOOLBOX\\wntx64\\psqlODBC\\{base_version}.{secondary_version}.{third_version}",
+    "windows_msi_url": "https://ftp.postgresql.org/pub/odbc/releases/REL-{base_version}_{secondary_version}_{third_version}/psqlodbc_x64.msi"
   }
 }

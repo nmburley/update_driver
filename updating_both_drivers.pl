@@ -34,9 +34,42 @@ my $config_json = read_file($config_path)
 # Decode the JSON
 my $config = decode_json($config_json);
 
-my $base_version = $config->{base_version};
-my $win_version_path = $config->{base_version}.$config->{secondary_version};
-my $linux_version = $config->{base_version}.$config->{secondary_version}.$config->{third_version};
+# Basic version pieces from config
+my $base_version = $config->{base_version} || '';
+my $secondary_version = $config->{secondary_version} || '';
+my $third_version = $config->{third_version} || '';
+
+# dotted/joined forms useful for templates
+my $win_version_path = join('.', grep { $_ ne '' } ($base_version, $secondary_version));
+my $linux_version = join('.', grep { $_ ne '' } ($base_version, $secondary_version, $third_version));
+
+# Expand simple {placeholders} found in config strings
+sub expand_template {
+    my ($s) = @_;
+    return $s unless defined $s && $s =~ /\{.+?\}/;
+    $s =~ s/\{base_version\}/$base_version/g;
+    $s =~ s/\{secondary_version\}/$secondary_version/g;
+    $s =~ s/\{third_version\}/$third_version/g;
+    $s =~ s/\{win_version_path\}/$win_version_path/g;
+    $s =~ s/\{linux_version\}/$linux_version/g;
+    return $s;
+}
+
+# Expand commonly used config strings so JSON can contain templates
+if (ref $config->{linux} eq 'HASH') {
+    for my $k (qw(build_version_dir src_base_dir driver_rpm driver_url mimalloc_tarball psql_ver mim_tag)) {
+        if (defined $config->{linux}{$k}) {
+            $config->{linux}{$k} = expand_template($config->{linux}{$k});
+        }
+    }
+}
+if (ref $config->{windows} eq 'HASH') {
+    for my $k (qw(windows_dir windows_msi_url)) {
+        if (defined $config->{windows}{$k}) {
+            $config->{windows}{$k} = expand_template($config->{windows}{$k});
+        }
+    }
+}
 
 # Linux config
 my $linux_cfg = $config->{linux};
@@ -45,7 +78,7 @@ my $src_base_dir = $linux_cfg->{src_base_dir};
 my $driver_rpm = $linux_cfg->{driver_rpm};
 my $driver_url = $linux_cfg->{driver_url};
 my $mim_tag = $config->{linux}->{mim_tag} || "v2.2.4";
-my $psql_ver = $config->{linux}->{psql_ver} || "REL-17_00_0006-mimalloc";
+my $psql_ver = $config->{linux}->{psql_ver} || "REL-${base_version}_${secondary_version}_${third_version}";
 
 # Windows config
 my $windows_cfg = $config->{windows};
