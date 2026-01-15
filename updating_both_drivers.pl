@@ -39,6 +39,10 @@ my $base_version = $config->{base_version} || '';
 my $secondary_version = $config->{secondary_version} || '';
 my $third_version = $config->{third_version} || '';
 
+# derived form: strip "-mimalloc" if present
+my $third_version_minus_mimalloc = $third_version;
+$third_version_minus_mimalloc =~ s/-mimalloc$//;
+
 # dotted/joined forms useful for templates
 my $win_version_path = join('.', grep { $_ ne '' } ($base_version, $secondary_version));
 my $linux_version = join('.', grep { $_ ne '' } ($base_version, $secondary_version, $third_version));
@@ -52,6 +56,7 @@ sub expand_template {
     $s =~ s/\{third_version\}/$third_version/g;
     $s =~ s/\{win_version_path\}/$win_version_path/g;
     $s =~ s/\{linux_version\}/$linux_version/g;
+    $s =~ s/\{third_version_minus_mimalloc\}/$third_version_minus_mimalloc/g;
     return $s;
 }
 
