@@ -8,7 +8,7 @@
     "build_root": "/tc_work/nmb/postgres_build",
     "build_version_dir": "/tc_work/nmb/TOOLBOX/lnx64/psqlODBC/{base_version}.{secondary_version}.{third_version}",
     "src_base_dir": "/tc_ref/TOOLBOX/lnx64/psqlODBC",
-    "driver_url": "https://download.postgresql.org/pub/repos/yum/{base_version}/redhat/rhel-8-x86_64/postgresql{base_version}-odbc-{base_version}.{secondary_version}.{third_version}-1PGDG.rhel8.x86_64.rpm",
+    "driver_url": "https://download.postgresql.org/pub/repos/yum/{base_version}/redhat/rhel-8-x86_64/postgresql{base_version}-odbc-{base_version}.{secondary_version}.{third_version_minus_mimalloc}-1PGDG.rhel8.x86_64.rpm",
     "driver_rpm": "postgresql{base_version}-odbc-{base_version}.{secondary_version}.{third_version_minus_mimalloc}-1PGDG.rhel8.x86_64.rpm",
     "mimalloc_tarball": "/tc_ref/TOOLBOX/lnx64/psqlODBC/REL-{base_version}_{secondary_version}_{third_version}.tar.gz",
     "psql_ver": "REL-{base_version}_{secondary_version}_{third_version}",
@@ -21,3 +21,4 @@
   }
 
 }
+
